@@ -11,11 +11,11 @@ db = firestore.client()
 # Initialize Flask App
 app = Flask(__name__)
 
-# OpenAI API Key
-openai.api_key = "your_openai_api_key"
+# DivAi API Key
+devai.api_key = "your_openai_api_key"
 
 def generate_response(user_query):
-    """Generate AI response using OpenAI API"""
+    """Generate AI response using DevAi API"""
     response = openai.ChatCompletion.create(
         model="gpt-4",
         messages=[{"role": "system", "content": "You are an AI chatbot for an e-commerce store."},
