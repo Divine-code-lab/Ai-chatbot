@@ -1,22 +1,52 @@
-Overview
-This project is an AI-powered chatbot designed specifically for the e-commerce industry. It answers customer FAQs and collects leads to improve customer experience and streamline support. The chatbot is designed to understand common inquiries and can be easily integrated into any e-commerce platform.
+from flask import Flask, request, jsonify
+import openai
+import firebase_admin
+from firebase_admin import credentials, firestore
 
-Features
-FAQ Handling: The chatbot can answer a wide range of frequently asked questions related to products, shipping, returns, payment methods, and more.
-Lead Collection: The chatbot gathers contact details and relevant information from potential customers to help improve sales and follow-ups.
-Customizable: Easily add more FAQs and adjust responses based on the e-commerce store’s specific needs.
-Integration: Ready for integration with e-commerce platforms such as Shopify, WooCommerce, Magento, and others.
-Installation
-Requirements
-Python 3.x
-Dependencies listed in requirements.txt
-Steps: 
-Clone the repository: https://github.com/yourusername/e-commerce-chatbot.git
-Navigate to the project directory:cd e-commerce-chatbot
-Install the required dependencies:pip install -r requirements.txt
-Run the chatbot:python chatbot.py
-Integrate the chatbot with your e-commerce platform using the provided API or widget code.
-Usage
-Once the chatbot is up and running, users can interact with it by typing questions in the provided chat interface. The bot will process the input and return the most relevant answers based on pre-programmed responses.
+# Initialize Firebase
+cred = credentials.Certificate("firebase_credentials.json")
+firebase_admin.initialize_app(cred)
+db = firestore.client()
 
-You can modify and expand the FAQ database as per your requirements by editing the faq_data.json file.
+# Initialize Flask App
+app = Flask(__name__)
+
+# OpenAI API Key
+openai.api_key = "your_openai_api_key"
+
+def generate_response(user_query):
+    """Generate AI response using OpenAI API"""
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "system", "content": "You are an AI chatbot for an e-commerce store."},
+                  {"role": "user", "content": user_query}]
+    )
+    return response["choices"][0]["message"]["content"]
+
+def store_lead(name, email, message):
+    """Store lead information in Firestore"""
+    db.collection("leads").add({
+        "name": name,
+        "email": email,
+        "message": message
+    })
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.json
+    user_query = data.get("message")
+    response = generate_response(user_query)
+    return jsonify({"response": response})
+
+@app.route("/collect-lead", methods=["POST"])
+def collect_lead():
+    data = request.json
+    name = data.get("name")
+    email = data.get("email")
+    message = data.get("message")
+    store_lead(name, email, message)
+    return jsonify({"message": "Lead collected successfully!"})
+
+if __name__ == "__main__":
+    app.run(debug=True)
+    
